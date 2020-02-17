@@ -1,0 +1,15 @@
+{
+  "name": "2kplusjam2020",
+  "private": true,
+  "scripts": {
+    "start": "node test-server.js",
+    "2k": "node build.js 2k",
+    "plus": "node build.js plus"
+  },
+  "devDependencies": {
+    "express": "^4.17.1",
+    "lodash": "4.17.15",
+    "regpack": "Siorki/RegPack",
+    "shelljs": "0.8.3"
+  }
+}
