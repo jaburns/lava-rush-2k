@@ -59,7 +59,7 @@ const getMinifiedShader = path => {
     const inputShader = applyBuildRegions(fs.readFileSync(path, 'utf8'));
     fs.writeFileSync('tmp_in.glsl', inputShader);
 
-    const SHADER_MIN_TOOL = process.platform === 'win32' ? '..\\tools\\shader_minifier.exe' : 'mono tools/shader_minifier.exe';
+    const SHADER_MIN_TOOL = process.platform === 'win32' ? 'tools\\shader_minifier.exe' : 'mono tools/shader_minifier.exe';
     shell.exec(`${SHADER_MIN_TOOL} --preserve-externals --no-renaming-list main --format none tmp_in.glsl -o tmp_out.glsl`);
     const result = fs.readFileSync('tmp_out.glsl', 'utf8');
     
@@ -141,9 +141,9 @@ const main = () => {
 
     shell.cd(BUILD_DIR);
     if (MODE === 'plus') {
-        shell.exec('..\\..\\tools\\advzip.exe -q -a -4 ../'+ZIP_NAME+' *.*');
+        shell.exec('..\\tools\\advzip.exe -q -a -4 ../'+ZIP_NAME+' *.*');
     } else {
-        shell.exec('..\\..\\tools\\advzip.exe -q -a -4 ../'+ZIP_NAME+' '+HTML_NAME);
+        shell.exec('..\\tools\\advzip.exe -q -a -4 ../'+ZIP_NAME+' '+HTML_NAME);
     }
     shell.cd('..');
 

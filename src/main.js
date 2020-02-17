@@ -48,6 +48,7 @@ document.onkeyup = $a => $keys[$a.keyCode] = 0,
 $main = $a => (
     $vy -= .02,
     $py += $vy,
+    $py < 0 && ($py = 0, $vy = 0, $canJump = 1),
 
     $keys[87] && ($px += .4*Math.sin($viewYaw), $pz += .4*Math.cos($viewYaw)),
     $keys[83] && ($px -= .4*Math.sin($viewYaw), $pz -= .4*Math.cos($viewYaw)),
@@ -68,12 +69,6 @@ $main = $a => (
             3
         ),
         0, 1, 1, g.RGBA, g.UNSIGNED_BYTE, $shaderReadBuffer
-    ),
-
-    $shaderReadBuffer[3] && (
-        $py += $shaderReadBuffer[0]/255,
-        $vy = 0,
-        $canJump = 1
     ),
 
     requestAnimationFrame($main)
