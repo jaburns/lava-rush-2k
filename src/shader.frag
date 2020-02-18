@@ -1,84 +1,84 @@
 uniform vec4 g[2];
 
-const float CELL_SIZE = 20.;
-
 float noise(vec2 n) { 
-	return fract(sin(dot(n, vec2(12.9, 4.1))) * 43.5);
+    return fract(sin(dot(n, vec2(12.9, 4.1))) * 43.5);
 }	
 
-
+vec3 colorFromHue(float h)
+{
+    return .45 + .51*(
+        clamp(
+            abs(
+                mod( fract(h) * 6. + vec3(0,4,2), 6.) - 3.
+            ) - 1.,
+            0.,
+            1.
+        ) - .5
+    );
+}
 mat2 rot( float theta )
 {
-    float c = cos( theta );
-    float s = sin( theta );
-    return mat2( c, s, -s, c );
+    return mat2( cos( theta ), sin( theta ), -sin( theta ), cos( theta ) );
 }
 
-float sdBox( vec3 p, vec3 b )
-{
-  vec3 q = abs(p) - b;
-  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
-}
 
-vec2 getCellId( vec3 p )
+vec4 map( vec3 p0 )
 {
-    return vec2(
-        floor((p.x+.5*CELL_SIZE)/CELL_SIZE),
-        floor((p.z+.5*CELL_SIZE)/CELL_SIZE)
-       );
-}
-float cellDist( vec2 id, vec3 p )
-{
-    float seed = noise(id);
-    p -= vec3(id.x,0,id.y)*CELL_SIZE;
-    p.xz *= rot(100.*noise(vec2(seed,4.)));
-    return sdBox( p, vec3(
-        5. +  8.*noise(vec2(seed,1.)),
-        100. + 20.*noise(vec2(seed,2.)),
-        5. +  8.*noise(vec2(seed,3.))
-    ));
-}
-float map( vec3 p )
-{
-    p.y += 100.;    
-    float d = 200.;
+    const float i_CELL_SIZE = 20.;
+    const float i_CELL_HALF = 10.;
+
+    p0.y += 100.;    
+    vec4 d = vec4(200);
+
     for( float dx = -1.; dx <= 1.; dx++ ) {
-        for( float dy = -1.; dy <= 1.; dy++ ) {
-            vec2 id = getCellId( p ) + vec2(dx, dy);
-            d = min(d, cellDist( id, p ));
+        for( float dy = -1.; dy <= 1.; dy++ )
+        {
+            vec2 id = vec2(dx,dy) + floor((p0.xz+i_CELL_HALF)/i_CELL_SIZE);
+
+            float seed = noise(id);
+
+            float theta = 6.3*noise(vec2(seed,4));
+
+            vec3 p = p0 - vec3(id.x,0,id.y)*i_CELL_SIZE;
+            p.xz *= rot(theta);
+
+            vec3 q = abs(p) - vec3(
+                5. +  8.*noise(vec2(seed,1)),
+                100. + 20.*noise(vec2(seed,2)),
+                5. +  8.*noise(vec2(seed,3))
+            );
+
+            p = floor(p);
+            
+            vec4 cd = vec4(
+                (1.+.3*mod(p.x + p.y + p.z, 2.)) * colorFromHue(noise(vec2(seed,5))), // xyz: color
+                length(max(q,0.)) + min(max(q.x,max(q.y,q.z)),0.)                     // w:   dist
+            );
+
+            d = cd.w < d.w ? cd : d;
         }
     }
+
     return d;    
 }
-vec3 getColor( vec3 p )
-{
-    p = floor(p);
-    return vec3( .5 + .5*mod(p.x + p.y + p.z, 2.) );
-}
-
-
-
-
 
 vec3 getNormal(vec3 p)
 {
     vec2 e = vec2(.001, 0);
     return normalize(vec3(
-        map(p + e.xyy) - map(p - e.xyy),
-        map(p + e.yxy) - map(p - e.yxy),
-        map(p + e.yyx) - map(p - e.yyx)));
+        map(p + e.xyy).w - map(p - e.xyy).w,
+        map(p + e.yxy).w - map(p - e.yxy).w,
+        map(p + e.yyx).w - map(p - e.yyx).w));
 }
 
-vec3 getColor( vec3 p )
-{
-    p = floor(p);
-    return vec3( .5 + .5*mod(p.x + p.y + p.z, 2.) );
-}
+
+
 
 void main()
 {
     vec2 uv = (gl_FragCoord.xy - .5*vec2(1024,768))/768.;
     vec3 ro = g[1].xyz; 
+    vec3 roo = ro;
     vec3 rd = normalize(vec3(uv, 1));
     ro.y += .2*(sin(ro.x)+sin(ro.z));
 
@@ -86,34 +86,26 @@ void main()
     rd.xz *= rot(g[0].x);
 
     float totalDist = 0.;
-    float dist = 0.;
-
-    vec3 roo = ro;
-    
+    vec4 dist = vec4(0);
     for( int i = 0; i < 99; ++i )
     {
         dist = map( ro );
-        if( dist < .001 || totalDist > 100. ) break;
-        totalDist += dist*.9;
-        ro += rd * dist*.9;
+        if( dist.w < .001 || totalDist > 100. ) break;
+        totalDist += dist.w*.9;
+        ro += rd * dist.w*.9;
     }
 
-    vec3 color = vec3(0);
+    const vec3 i_FOG = vec3(.3,.3,.5);
 
-    if( dist < .01 ) {
-        color = getColor(ro); // .5+.5*getNormal(ro);
-        color *= exp(-totalDist/30.) * (.5+.5*clamp(  dot(normalize(vec3(1,1,1)) , getNormal(ro) )  ,0.,1.));
-//  } else {
-//      roo.y += 2.;
-//      float ph = -roo.y / rd.y;
-//      if( ph > 0.0 ) {
-//          vec3 p = roo + ph*rd;
-//          color = exp(-ph/20.)*carpet(p.xz);
-//      }
-    }
+    vec3 color = totalDist < 100.
+        ? mix(
+            i_FOG,
+            dist.xyz * (.5+.5*max(0.,dot(vec3(.6), getNormal(ro)))),
+            exp(-totalDist/40.))
+        : i_FOG;
 
     if (gl_FragCoord.x < 1. && gl_FragCoord.y < 1.) {
-        float depth = map( roo + vec3(0,-3,0) );
+        float depth = map( roo + vec3(0,-3,0) ).w;
         vec3 norm = getNormal( roo + vec3(0,-3,0));
         if( depth < 0. && norm.y > .99 ) {
             vec3 delta = norm * depth;
