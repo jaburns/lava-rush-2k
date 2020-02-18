@@ -85,10 +85,22 @@ void main()
 {
     vec2 uv = (gl_FragCoord.xy - .5*vec2(1024,768))/768.;
     vec3 ro = g[1].xyz; 
-    vec3 roo = ro;
     vec3 rd = normalize(vec3(uv, 1));
-    ro.y += .2*(sin(ro.x)+sin(ro.z));
 
+    float pdepth = map( ro ).w;
+    vec3 pnorm = getNormal( ro );
+    vec3 pdelta = pdepth <= 3. ? pnorm * (3.-pdepth) : vec3(0);
+
+    if (gl_FragCoord.x <= 2. && gl_FragCoord.y < 1.) {
+        gl_FragColor = gl_FragCoord.x < 1.
+            ? vec4(writeFloat(pdelta.x),writeFloat(pdelta.y))
+            : vec4(writeFloat(pdelta.z), pdepth <= 3. && pnorm.y > .95 ? 1 : 0, 0);
+        return;
+    }
+
+    ro += pdelta;
+
+    ro.y += .2*(sin(ro.x)+sin(ro.z));
     rd.yz *= rot(g[0].y);
     rd.xz *= rot(g[0].x);
 
@@ -111,15 +123,5 @@ void main()
             exp(-totalDist/40.))
         : i_FOG;
 
-    if (gl_FragCoord.x <= 2. && gl_FragCoord.y < 1.) {
-        float depth = map( roo ).w;
-        vec3 norm = getNormal( roo );
-        vec3 delta = depth <= 3. ? norm * (3.-depth) : vec3(0);
-
-        gl_FragColor = gl_FragCoord.x < 1.
-            ? vec4(writeFloat(delta.x),writeFloat(delta.y))
-            : vec4(writeFloat(delta.z), depth <= 3. && norm.y > .95 ? 1 : 0, 0);
-    } else {
-        gl_FragColor = vec4(color,1);
-    }
+    gl_FragColor = vec4(color,1);
 }
