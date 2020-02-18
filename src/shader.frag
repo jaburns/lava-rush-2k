@@ -109,10 +109,10 @@ void main()
 
     float dy = dpy( ro );
     vec3 pdelta = vec3(0);
-    float dxz = map( ro, 1 ).w;
+    float dxz = map( ro - vec3(0,2,0), 1 ).w; // 2 = player height (3) - collision ring elevation (1)
     
-    if (dy < 3.) pdelta.y = 3.-dy;
-    if (dxz < 2.) pdelta.xz = (2.-dxz) * getNormal( ro, 1 ).xz;
+    if (dy < 3.) pdelta.y = 3.-dy; // 3 = player height
+    if (dxz < 2.) pdelta.xz = (2.-dxz) * getNormal( ro - vec3(0,2,0), 1 ).xz; // 2 = player xz radius
 
     if (gl_FragCoord.x <= 2. && gl_FragCoord.y < 1.) {
         gl_FragColor = gl_FragCoord.x < 1.
