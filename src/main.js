@@ -11,7 +11,7 @@ $b = g.createShader(g.FRAGMENT_SHADER),
 g.shaderSource($b, $a),
 g.compileShader($b),
 g.attachShader($shader, $b),
-console.log(g.getShaderInfoLog($b)),
+//console.log(g.getShaderInfoLog($b)),
 
 g.vertexAttribPointer(
     g.linkProgram($shader),
@@ -23,7 +23,7 @@ g.vertexAttribPointer(
 ),
 
 $shaderWriteBuffer = [0,0,0,0,0,0,0,0],
-$shaderReadBuffer = new Uint8Array(16),
+$shaderReadBuffer = new Uint8Array(8),
 
 $py = 40,
 
@@ -41,6 +41,8 @@ a.onclick = $a => (
         $viewPitch -= .003*$a.movementY
     )
 ),
+
+$readFloat = $a => ($shaderReadBuffer[$a]/255 + $shaderReadBuffer[$a+1]/255/255)*2 - 1,
 
 document.onkeydown = $a => $keys[$a.keyCode] = 1,
 document.onkeyup = $a => $keys[$a.keyCode] = 0,
@@ -67,14 +69,13 @@ $main = $a => (
             g.uniform4fv(g.getUniformLocation($shader, 'g'), $shaderWriteBuffer), // Returns 0
             3
         ),
-        0, 1, 1, g.RGBA, g.UNSIGNED_BYTE, $shaderReadBuffer
+        0, 2, 1, g.RGBA, g.UNSIGNED_BYTE, $shaderReadBuffer
     ),
 
-    $shaderReadBuffer[3] && (
-        $py += $shaderReadBuffer[0]/255,
-        $vy = 0,
-        $canJump = 1
-    ),
+    $px += $readFloat(0),
+    $py += $readFloat(2),
+    $pz += $readFloat(4),
+    $shaderReadBuffer[6] && ( $vy = 0, $canJump = 1 ),
 
     requestAnimationFrame($main)
 ),
