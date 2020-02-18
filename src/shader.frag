@@ -1,5 +1,7 @@
 uniform vec4 g[2];
 
+int mapMode;
+
 float noise(vec2 n) { 
     return fract(sin(dot(n, vec2(12.9, 4.1))) * 43.5);
 }	
@@ -21,11 +23,7 @@ mat2 rot( float theta )
     return mat2( cos( theta ), sin( theta ), -sin( theta ), cos( theta ) );
 }
 
-
-const int i_MAP_MODE_3D = 0;
-const int i_MAP_MODE_XZ = 1;
-
-vec4 map( vec3 p0, int mode )
+vec4 map( vec3 p0 )
 {
     const float i_CELL_SIZE = 20.;
     const float i_CELL_HALF = 10.;
@@ -48,7 +46,7 @@ vec4 map( vec3 p0, int mode )
 
             vec3 q = abs(p) - vec3(
                 5. +  8.*noise(vec2(seed,1)),
-                mode == 0
+                mapMode == 0
                     ? 100. + height
                     : p0.y > height ? 0. : 1000. ,
                 5. +  8.*noise(vec2(seed,3))
@@ -68,13 +66,13 @@ vec4 map( vec3 p0, int mode )
     return d;    
 }
 
-vec3 getNormal(vec3 p, int mode)
+vec3 getNormal(vec3 p)
 {
     vec2 e = vec2(.001, 0);
     return normalize(vec3(
-        map(p + e.xyy, mode).w - map(p - e.xyy, mode).w,
-        map(p + e.yxy, mode).w - map(p - e.yxy, mode).w,
-        map(p + e.yyx, mode).w - map(p - e.yyx, mode).w));
+        map(p + e.xyy).w - map(p - e.xyy).w,
+        map(p + e.yxy).w - map(p - e.yxy).w,
+        map(p + e.yyx).w - map(p - e.yyx).w));
 }
 
 
@@ -97,11 +95,13 @@ void main()
     vec3 ro = g[1].xyz;
     vec3 rd = vec3(0,-1,0);
 
+    mapMode = 0;
+
 // ---- March ----------------------------------------------
     totalDist = 0.;
     dist = vec4(0);
     for( int i = 0; i < 99; ++i ) {
-        dist = map( ro, 0 );
+        dist = map( ro );
         if( dist.w < .001 || totalDist > 100. ) break;
         totalDist += dist.w*.9;
         ro += rd * dist.w*.9;
@@ -112,11 +112,12 @@ void main()
     ro = g[1].xyz; 
     rd = normalize(vec3(uv, 1));
 
+    mapMode = 1;
     vec3 pdelta = vec3(0);
-    float dxz = map( ro - vec3(0,2,0), 1 ).w; // 2 = player height (3) - collision ring elevation (1)
-    
+    float dxz = map( ro - vec3(0,2,0) ).w; // 2 = player height (3) - collision ring elevation (1)
     if (dy < 3.) pdelta.y = 3.-dy; // 3 = player height
-    if (dxz < 2.) pdelta.xz = (2.-dxz) * getNormal( ro - vec3(0,2,0), 1 ).xz; // 2 = player xz radius
+    if (dxz < 2.) pdelta.xz = (2.-dxz) * getNormal( ro - vec3(0,2,0) ).xz; // 2 = player xz radius
+    mapMode = 0;
 
     if (gl_FragCoord.x <= 2. && gl_FragCoord.y < 1.) {
         gl_FragColor = gl_FragCoord.x < 1.
@@ -135,7 +136,7 @@ void main()
     totalDist = 0.;
     dist = vec4(0);
     for( int i = 0; i < 99; ++i ) {
-        dist = map( ro, 0 );
+        dist = map( ro );
         if( dist.w < .001 || totalDist > 100. ) break;
         totalDist += dist.w*.9;
         ro += rd * dist.w*.9;
@@ -147,7 +148,7 @@ void main()
     vec3 color = totalDist < 100.
         ? mix(
             i_FOG,
-            dist.xyz * (.5+.5*max(0.,dot(vec3(.6), getNormal(ro,0)))),
+            dist.xyz * (.5+.5*max(0.,dot(vec3(.6), getNormal(ro)))),
             exp(-totalDist/40.))
         : i_FOG;
 
