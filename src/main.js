@@ -11,7 +11,7 @@ $b = g.createShader(g.FRAGMENT_SHADER),
 g.shaderSource($b, $a),
 g.compileShader($b),
 g.attachShader($shader, $b),
-//console.log(g.getShaderInfoLog($b)),
+console.log(g.getShaderInfoLog($b)),
 
 g.vertexAttribPointer(
     g.linkProgram($shader),
@@ -71,6 +71,8 @@ $main = $a => (
         ),
         0, 2, 1, g.RGBA, g.UNSIGNED_BYTE, $shaderReadBuffer
     ),
+
+    console.log($px, $py, $pz),
 
     $px += $readFloat(0),
     $py += $readFloat(2),

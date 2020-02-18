@@ -22,12 +22,14 @@ mat2 rot( float theta )
 }
 
 
-vec4 map( vec3 p0 )
+const int i_MAP_MODE_3D = 0;
+const int i_MAP_MODE_XZ = 1;
+
+vec4 map( vec3 p0, int mode )
 {
     const float i_CELL_SIZE = 20.;
     const float i_CELL_HALF = 10.;
 
-    p0.y += 100.;    
     vec4 d = vec4(200);
 
     for( float dx = -1.; dx <= 1.; dx++ ) {
@@ -39,12 +41,16 @@ vec4 map( vec3 p0 )
 
             float theta = 6.3*noise(vec2(seed,4));
 
-            vec3 p = p0 - vec3(id.x,0,id.y)*i_CELL_SIZE;
+            vec3 p = p0 - vec3(id.x,-100./i_CELL_SIZE,id.y)*i_CELL_SIZE;
             p.xz *= rot(theta);
+
+            float height = 20.*noise(vec2(seed,2));
 
             vec3 q = abs(p) - vec3(
                 5. +  8.*noise(vec2(seed,1)),
-                100. + 20.*noise(vec2(seed,2)),
+                mode == 0
+                    ? 100. + height
+                    : p0.y > height ? 0. : 1000. ,
                 5. +  8.*noise(vec2(seed,3))
             );
 
@@ -62,13 +68,27 @@ vec4 map( vec3 p0 )
     return d;    
 }
 
-vec3 getNormal(vec3 p)
+float dpy( vec3 p )
+{
+    float totalDist = 0.;
+    float dist = 0.;
+    for( int i = 0; i < 99; ++i )
+    {
+        dist = map( p, 0 ).w;
+        if( dist < .001 || totalDist > 100. ) break;
+        totalDist += dist;
+        p.y -= dist;
+    }
+    return totalDist;
+}
+
+vec3 getNormal(vec3 p, int mode)
 {
     vec2 e = vec2(.001, 0);
     return normalize(vec3(
-        map(p + e.xyy).w - map(p - e.xyy).w,
-        map(p + e.yxy).w - map(p - e.yxy).w,
-        map(p + e.yyx).w - map(p - e.yyx).w));
+        map(p + e.xyy, mode).w - map(p - e.xyy, mode).w,
+        map(p + e.yxy, mode).w - map(p - e.yxy, mode).w,
+        map(p + e.yyx, mode).w - map(p - e.yyx, mode).w));
 }
 
 
@@ -87,8 +107,25 @@ void main()
     vec3 ro = g[1].xyz; 
     vec3 rd = normalize(vec3(uv, 1));
 
-    float pdepth = map( ro ).w;
-    vec3 pnorm = getNormal( ro );
+    float dy = dpy( ro );
+    vec3 pdelta = vec3(0);
+    float dxz = map( ro, 1 ).w;
+    
+    if (dy < 3.) pdelta.y = 3.-dy;
+    if (dxz < 2.) pdelta.xz = (2.-dxz) * getNormal( ro, 1 ).xz;
+
+    if (gl_FragCoord.x <= 2. && gl_FragCoord.y < 1.) {
+        gl_FragColor = gl_FragCoord.x < 1.
+            ? vec4(writeFloat(pdelta.x),writeFloat(pdelta.y))
+            : vec4(writeFloat(pdelta.z), dy < 3. ? 1 : 0, 0);
+        return;
+    }
+
+    ro += pdelta;
+
+/*
+    float pdepth = map( ro, 0 ).w;
+    vec3 pnorm = getNormal( ro, 0 );
     vec3 pdelta = pdepth <= 3. ? pnorm * (3.-pdepth) : vec3(0);
 
     if (gl_FragCoord.x <= 2. && gl_FragCoord.y < 1.) {
@@ -99,6 +136,7 @@ void main()
     }
 
     ro += pdelta;
+*/
 
     ro.y += .2*(sin(ro.x)+sin(ro.z));
     rd.yz *= rot(g[0].y);
@@ -108,7 +146,7 @@ void main()
     vec4 dist = vec4(0);
     for( int i = 0; i < 99; ++i )
     {
-        dist = map( ro );
+        dist = map( ro, 0 );
         if( dist.w < .001 || totalDist > 100. ) break;
         totalDist += dist.w*.9;
         ro += rd * dist.w*.9;
@@ -119,7 +157,7 @@ void main()
     vec3 color = totalDist < 100.
         ? mix(
             i_FOG,
-            dist.xyz * (.5+.5*max(0.,dot(vec3(.6), getNormal(ro)))),
+            dist.xyz * (.5+.5*max(0.,dot(vec3(.6), getNormal(ro,0)))),
             exp(-totalDist/40.))
         : i_FOG;
 
