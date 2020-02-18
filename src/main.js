@@ -25,7 +25,7 @@ g.vertexAttribPointer(
 $shaderWriteBuffer = [0,0,0,0,0,0,0,0],
 $shaderReadBuffer = new Uint8Array(16),
 
-$py = 10,
+$py = 40,
 
 $vy =
 $canJump =
