@@ -50,7 +50,7 @@ vec4 map( vec3 p0 )
             
             vec4 cd = vec4(
                 // xyz: Color
-                (1.+.3*mod(p.x+p.y+p.z,2.)) // checkerboard
+                (1.-.3*mod(p.x+p.y+p.z,2.)) // checkerboard
                 * (.45+.51*(clamp(abs(mod(fract(noise(vec2(noise(id),5)))*6.+vec3(0,4,2),6.)-3.)-1.,0.,1.)-.5)) // hsl to rgb
             ,
                 // w: Distance
