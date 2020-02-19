@@ -84,10 +84,15 @@ vec2 writeFloat(float a)
 
 void main()
 {
+    if (g[0].w > 0.) {
+        gl_FragColor = vec4(mix(3.*vec3(1,.25,.1),vec3(0),g[0].w/60.),1);
+        return;
+    }
+
     float totalDist;
     vec4 dist;
 
-    vec2 uv = (gl_FragCoord.xy - .5*vec2(1024,768))/768.;
+    vec2 uv = (gl_FragCoord.xy - .5*vec2(320,200))/200.;
 
     vec3 ro = g[1].xyz;
     vec3 rd = vec3(0,-1,0);
@@ -146,18 +151,26 @@ void main()
 
     float ph = -(roo.y - g[0].z) / rd.y;
     if ( ph > 0.0 && (ph < totalDist || totalDist > 100.) ) {
-        //vec3 p = roo + ph*rd;
+    //  vec3 p = roo + ph*rd;
+    //  p *= .5;
+    //  p.x += p.x + 2.*sin(.5*p.z);
+    //  color = mix(
+    //      i_FOG,
+    //      3.*vec3(1,.25,.1) + .05*sin(p.x) + .05*sin(p.z),
+    //      exp(-ph/40.));
         color = mix(
             i_FOG,
-            3.*vec3(1,.25,0),
+            3.*vec3(1,.25,.1),
             exp(-ph/40.));
     } else if (totalDist < 100.) {
         float glow = 2.*clamp(1. - .1 * (ro.y - g[0].z),  0., 1.);
         color = mix(
            i_FOG,
-           dist.xyz * (.5+.5*max(0.,dot(vec3(.6), getNormal(ro)))) + glow*vec3(1,.25,0),
+           dist.xyz * (.5+.5*max(0.,dot(vec3(.6), getNormal(ro)))) + glow*vec3(1,.25,.1),
            exp(-totalDist/40.));
     }
+
+    color = mix(color, vec3(0), -g[0].w/30.);
 
     gl_FragColor = vec4(color,1);
 }

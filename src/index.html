@@ -1,3 +1,16 @@
-<canvas id=a width=1024 height=768></canvas>
+<canvas id=a width=320 height=200></canvas>
+<h1 id=s></h1>
 <style onload="g=a.getContext('webgl');__CODE__">
-html,body{margin:0
+html,body,canvas{
+    margin:0;
+    font-family:monospace;
+    width:960px;
+    height:600px;
+    image-rendering:pixelated;
+    image-rendering:crisp-edges;
+}
+h1{
+  color:#fff;
+  position:absolute;
+  left:20px;
+  top:0
