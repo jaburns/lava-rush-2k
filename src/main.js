@@ -23,7 +23,7 @@ g.vertexAttribPointer(
 ),
 
 $init = $a => (
-    $shaderWriteBuffer = [0,0,0,0,0,40,0,0],
+    $shaderWriteBuffer = [0,0,0,0,0,40,0,0,0,0,0,0],
     $shaderReadBuffer = new Uint8Array(8),
     $deadFrames = -30,
     $vx =
@@ -33,7 +33,10 @@ $init = $a => (
     $vz1 =
     $canJump =
     $viewYaw = $viewPitch = 0,
-    $keys = {}
+    $saveGhost = [],
+    $keys = {},
+    $ghostyIndex = 0,
+    $ghosty = JSON.parse(localStorage.getItem(0) || '[]')
 ),
 
 a.onclick = $a => (
@@ -76,13 +79,25 @@ $main = $a => (
     $shaderWriteBuffer[1] = $viewPitch,
     $shaderWriteBuffer[2] += 0.05,
 
+    $ghostyIndex < $ghosty.length && (
+        console.log($ghosty[$ghostyIndex]),
+        $shaderWriteBuffer[8] = $ghosty[$ghostyIndex][0],
+        $shaderWriteBuffer[9] = $ghosty[$ghostyIndex][1],
+        $shaderWriteBuffer[10] = $ghosty[$ghostyIndex++][2]
+    ),
+
     $shaderWriteBuffer[5] < $shaderWriteBuffer[2] + 1
         && $deadFrames++
-        || (s.innerText = $shaderWriteBuffer[5]|0),
+        || (
+            s.innerText = $shaderWriteBuffer[5]|0,
+            $saveGhost.push([$shaderWriteBuffer[4],$shaderWriteBuffer[5],$shaderWriteBuffer[6]])
+        ),
 
     $deadFrames < 0 && $deadFrames++,
 
     $shaderWriteBuffer[3] = $deadFrames,
+
+    $deadFrames == 1 && localStorage.setItem(0,JSON.stringify($saveGhost)),
 
     g.readPixels(
         g.drawArrays(
@@ -90,7 +105,7 @@ $main = $a => (
             g.uniform4fv(g.getUniformLocation($shader, 'g'), $shaderWriteBuffer), // Returns 0
             3
         ),
-        0, 2, 1, g.RGBA, g.UNSIGNED_BYTE, $shaderReadBuffer
+        0, 2, 1, g.RGBA, 5121, $shaderReadBuffer // UNSIGNED_BYTE = 5121
     ),
 
     $shaderWriteBuffer[4] += $readFloat(0),

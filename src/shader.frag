@@ -1,6 +1,7 @@
-uniform vec4 g[2];
+uniform vec4 g[3];
 
 int mapMode;
+int mapGhost;
 
 mat2 rot( float theta )
 {
@@ -61,7 +62,9 @@ vec4 map( vec3 p0 )
         }
     }
 
-    return d;
+    vec4 ghost = mapGhost == 1 ? vec4(1,1,1, length(p0 - g[2].xyz) - .5) : vec4(0,0,0,10000);
+
+    return d.w < ghost.w ? d : ghost;
 }
 
 vec3 getNormal(vec3 p)
@@ -97,6 +100,7 @@ void main()
     vec3 ro = g[1].xyz;
     vec3 rd = vec3(0,-1,0);
 
+    mapGhost = 0;
     mapMode = 0;
 
 // ---- March ----------------------------------------------
@@ -134,6 +138,8 @@ void main()
     ro.y += .2*(sin(ro.x)+sin(ro.z));
     rd.yz *= rot(g[0].y);
     rd.xz *= rot(g[0].x);
+
+    mapGhost = 1;
 
 // ---- March ----------------------------------------------
     totalDist = 0.;
