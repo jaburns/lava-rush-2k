@@ -11,7 +11,7 @@ $b = g.createShader(g.FRAGMENT_SHADER),
 g.shaderSource($b, $a),
 g.compileShader($b),
 g.attachShader($shader, $b),
-//console.log(g.getShaderInfoLog($b)),
+console.log(g.getShaderInfoLog($b)),
 
 g.vertexAttribPointer(
     g.linkProgram($shader),
@@ -22,14 +22,11 @@ g.vertexAttribPointer(
     g.bufferData($a, Uint8Array.of(1, 1, 1, 128, 128, 1), $a + 82) // ARRAY_BUFFER + 82 = STATIC_DRAW; 128 = -127
 ),
 
-$shaderWriteBuffer = [0,0,0,0,0,0,0,0],
+$shaderWriteBuffer = [0,0,0,0,0,40,0,0],
 $shaderReadBuffer = new Uint8Array(8),
-
-$py = 40,
 
 $vy =
 $canJump =
-$px = $pz =
 $viewYaw = $viewPitch = 0,
 $keys = {},
 
@@ -49,19 +46,19 @@ document.onkeyup = $a => $keys[$a.keyCode] = 0,
 
 $main = $a => (
     $vy -= .02,
-    $py += $vy,
+    $shaderWriteBuffer[5] += $vy,
 
-    $keys[87] && ($px += .4*Math.sin($viewYaw), $pz += .4*Math.cos($viewYaw)),
-    $keys[83] && ($px -= .4*Math.sin($viewYaw), $pz -= .4*Math.cos($viewYaw)),
-    $keys[68] && ($px += .4*Math.sin($viewYaw+Math.PI/2), $pz += .4*Math.cos($viewYaw+Math.PI/2)),
-    $keys[65] && ($px += .4*Math.sin($viewYaw-Math.PI/2), $pz += .4*Math.cos($viewYaw-Math.PI/2)),
-    $keys[32] && $canJump && ($py += ($vy = .5), $canJump = 0),
+    $keys[87] && ($shaderWriteBuffer[4] += .4*Math.sin($viewYaw), $shaderWriteBuffer[6] += .4*Math.cos($viewYaw)),
+    $keys[83] && ($shaderWriteBuffer[4] -= .4*Math.sin($viewYaw), $shaderWriteBuffer[6] -= .4*Math.cos($viewYaw)),
+    $keys[68] && ($shaderWriteBuffer[4] += .4*Math.cos($viewYaw), $shaderWriteBuffer[6] -= .4*Math.sin($viewYaw)),
+    $keys[65] && ($shaderWriteBuffer[4] -= .4*Math.cos($viewYaw), $shaderWriteBuffer[6] += .4*Math.sin($viewYaw)),
+    $keys[32] && $canJump && ($shaderWriteBuffer[5] += ($vy = .5), $canJump = 0),
 
     $shaderWriteBuffer[0] = $viewYaw,
     $shaderWriteBuffer[1] = $viewPitch,
-    $shaderWriteBuffer[4] = $px,
-    $shaderWriteBuffer[5] = $py,
-    $shaderWriteBuffer[6] = $pz,
+    $shaderWriteBuffer[2] += 0.05,
+
+    $shaderWriteBuffer[5] < $shaderWriteBuffer[2] + .2 && location.reload(),
 
     g.readPixels(
         g.drawArrays(
@@ -72,11 +69,9 @@ $main = $a => (
         0, 2, 1, g.RGBA, g.UNSIGNED_BYTE, $shaderReadBuffer
     ),
 
-    //console.log($px, $py, $pz),
-
-    $px += $readFloat(0),
-    $py += $readFloat(2),
-    $pz += $readFloat(4),
+    $shaderWriteBuffer[4] += $readFloat(0),
+    $shaderWriteBuffer[5] += $readFloat(2),
+    $shaderWriteBuffer[6] += $readFloat(4),
     $shaderReadBuffer[6] && ( $vy = 0, $canJump = 1 ),
 
     requestAnimationFrame($main)

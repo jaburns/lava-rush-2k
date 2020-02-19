@@ -2,25 +2,21 @@ uniform vec4 g[2];
 
 int mapMode;
 
-float noise(vec2 n) { 
-    return fract(sin(dot(n, vec2(12.9, 4.1))) * 43.5);
-}	
-
-vec3 colorFromHue(float h)
-{
-    return .45 + .51*(
-        clamp(
-            abs(
-                mod( fract(h) * 6. + vec3(0,4,2), 6.) - 3.
-            ) - 1.,
-            0.,
-            1.
-        ) - .5
-    );
-}
 mat2 rot( float theta )
 {
     return mat2( cos( theta ), sin( theta ), -sin( theta ), cos( theta ) );
+}
+
+float noise(vec2 n)
+{ 
+    return fract(sin(dot(n, vec2(12.9, 4.1))) * 43.5);
+}	
+
+float sdCapsule( vec3 p, vec3 a, vec3 b, float r )
+{
+    vec3 pa = p - a, ba = b - a;
+    float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
+    return length( pa - ba*h ) - r;
 }
 
 vec4 map( vec3 p0 )
@@ -35,35 +31,37 @@ vec4 map( vec3 p0 )
         {
             vec2 id = vec2(dx,dy) + floor((p0.xz+i_CELL_HALF)/i_CELL_SIZE);
 
-            float seed = noise(id);
+            vec3 q,p = p0 - vec3(id.x,-100./i_CELL_SIZE,id.y)*i_CELL_SIZE;
+            p.xz *= rot(6.3*noise(vec2(noise(id),4)));
 
-            float theta = 6.3*noise(vec2(seed,4));
-
-            vec3 p = p0 - vec3(id.x,-100./i_CELL_SIZE,id.y)*i_CELL_SIZE;
-            p.xz *= rot(theta);
-
-            float height = 20.*noise(vec2(seed,2));
-
-            vec3 q = abs(p) - vec3(
-                5. +  8.*noise(vec2(seed,1)),
-                mapMode == 0
-                    ? 100. + height
-                    : p0.y > height ? 0. : 1000. ,
-                5. +  8.*noise(vec2(seed,3))
+            q = abs(p) - vec3(
+                5. +  8.*noise(vec2(noise(id),1)),
+                id.y < -1. // || id.x < -1.
+                    ? 0.
+                    : mapMode == 0 
+                        ? 100. + 20.*noise(vec2(noise(id),2)) + 5.*id.y
+                        : p0.y > 20.*noise(vec2(noise(id),2)) + 5.*id.y
+                            ? 0.
+                            : 1000. ,
+                5. +  8.*noise(vec2(noise(id),3))
             );
 
             p = floor(p);
             
             vec4 cd = vec4(
-                (1.+.3*mod(p.x + p.y + p.z, 2.)) * colorFromHue(noise(vec2(seed,5))), // xyz: color
-                length(max(q,0.)) + min(max(q.x,max(q.y,q.z)),0.)                     // w:   dist
+                // xyz: Color
+                (1.+.3*mod(p.x+p.y+p.z,2.)) // checkerboard
+                * (.45+.51*(clamp(abs(mod(fract(noise(vec2(noise(id),5)))*6.+vec3(0,4,2),6.)-3.)-1.,0.,1.)-.5)) // hsl to rgb
+            ,
+                // w: Distance
+                length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.)
             );
 
             d = cd.w < d.w ? cd : d;
         }
     }
 
-    return d;    
+    return d;
 }
 
 vec3 getNormal(vec3 p)
@@ -75,13 +73,12 @@ vec3 getNormal(vec3 p)
         map(p + e.yyx).w - map(p - e.yyx).w));
 }
 
-
 vec2 writeFloat(float a)
 {
     a = (a + 1.) / 2.;
     return vec2(
         floor(a*255.) / 255.,
-        fract(255. * a)
+        fract(a*255.)
     );
 }
 
@@ -114,6 +111,7 @@ void main()
 
     mapMode = 1;
     vec3 pdelta = vec3(0);
+    vec3 roo = ro;
     float dxz = map( ro - vec3(0,2,0) ).w; // 2 = player height (3) - collision ring elevation (1)
     if (dy < 3.) pdelta.y = 3.-dy; // 3 = player height
     if (dxz < 2.) pdelta.xz = (2.-dxz) * getNormal( ro - vec3(0,2,0) ).xz; // 2 = player xz radius
@@ -143,14 +141,23 @@ void main()
     }
 // ---------------------------------------------------------
 
-    const vec3 i_FOG = vec3(.3,.3,.5);
+    const vec3 i_FOG = vec3(0); // vec3(.3,.3,.5);
+    vec3 color = i_FOG;
 
-    vec3 color = totalDist < 100.
-        ? mix(
+    float ph = -(roo.y - g[0].z) / rd.y;
+    if ( ph > 0.0 && (ph < totalDist || totalDist > 100.) ) {
+        //vec3 p = roo + ph*rd;
+        color = mix(
             i_FOG,
-            dist.xyz * (.5+.5*max(0.,dot(vec3(.6), getNormal(ro)))),
-            exp(-totalDist/40.))
-        : i_FOG;
+            3.*vec3(1,.25,0),
+            exp(-ph/40.));
+    } else if (totalDist < 100.) {
+        float glow = 2.*clamp(1. - .1 * (ro.y - g[0].z),  0., 1.);
+        color = mix(
+           i_FOG,
+           dist.xyz * (.5+.5*max(0.,dot(vec3(.6), getNormal(ro)))) + glow*vec3(1,.25,0),
+           exp(-totalDist/40.));
+    }
 
     gl_FragColor = vec4(color,1);
 }
