@@ -173,6 +173,7 @@ void main()
         + albedo * pointLightI;
 
     color = mix(i_FOG, color, exp(-totalDist/40.));
+    color = mix(color, vec3(0), -g[0].w/30.);
 
     gl_FragColor = vec4(color,1);
 }
