@@ -104,7 +104,7 @@ void main()
     dist = vec4(0);
     for( int i = 0; i < 99; ++i ) {
         dist = map( ro );
-        if( dist.w < .001 || totalDist > 100. ) break;
+        if( dist.w < .001 || totalDist > 200. ) break;
         totalDist += dist.w*.9;
         ro += rd * dist.w*.9;
     }
@@ -131,7 +131,7 @@ void main()
 
     ro += pdelta;
 
-    ro.y += .2*(sin(ro.x)+sin(ro.z));
+    ro.y += .1*(sin(ro.x)+sin(ro.z));
     rd.yz *= rot(g[0].y);
     rd.xz *= rot(g[0].x);
 
@@ -140,37 +140,39 @@ void main()
     dist = vec4(0);
     for( int i = 0; i < 99; ++i ) {
         dist = map( ro );
-        if( dist.w < .001 || totalDist > 100. ) break;
+        if( dist.w < .001 || totalDist > 200. ) break;
         totalDist += dist.w*.9;
         ro += rd * dist.w*.9;
     }
 // ---------------------------------------------------------
 
+    //const vec3 i_FOG = vec3(.03,0,.05); // vec3(.3,.3,.5);
     const vec3 i_FOG = vec3(0); // vec3(.3,.3,.5);
+
     vec3 color = i_FOG;
 
+    vec3 albedo;
+    float pointLightI;
+    float glowI;
+
     float ph = -(roo.y - g[0].z) / rd.y;
-    if ( ph > 0.0 && (ph < totalDist || totalDist > 100.) ) {
-    //  vec3 p = roo + ph*rd;
-    //  p *= .5;
-    //  p.x += p.x + 2.*sin(.5*p.z);
-    //  color = mix(
-    //      i_FOG,
-    //      3.*vec3(1,.25,.1) + .05*sin(p.x) + .05*sin(p.z),
-    //      exp(-ph/40.));
-        color = mix(
-            i_FOG,
-            3.*vec3(1,.25,.1),
-            exp(-ph/40.));
-    } else if (totalDist < 100.) {
-        float glow = 2.*clamp(1. - .1 * (ro.y - g[0].z),  0., 1.);
-        color = mix(
-           i_FOG,
-           dist.xyz * (.5+.5*max(0.,dot(vec3(.6), getNormal(ro)))) + glow*vec3(1,.25,.1),
-           exp(-totalDist/40.));
+    if ( ph > 0.0 && (ph < totalDist || totalDist > 200.) ) {
+        glowI = 2.;
+        albedo = vec3(1);
+        pointLightI = 0.;
+        totalDist = ph;
+    } else if (totalDist < 200.) {
+        glowI = 2.*clamp(1.-.1*(ro.y-g[0].z),0.,1.);
+        glowI *= glowI;
+        albedo = dist.xyz;
+        vec3 L = g[1].xyz-ro;
+        pointLightI = .4+.6*dot(normalize(L),getNormal(ro)) / pow(.8+.005*length(L),2.);
     }
 
-    color = mix(color, vec3(0), -g[0].w/30.);
+    color = albedo * glowI * 3.*vec3(1,.25,.1)
+        + albedo * pointLightI;
+
+    color = mix(i_FOG, color, exp(-totalDist/40.));
 
     gl_FragColor = vec4(color,1);
 }

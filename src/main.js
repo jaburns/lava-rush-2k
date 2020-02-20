@@ -36,18 +36,22 @@ $init = $a => (
     $keys = {}
 ),
 
+$sensitivity = .003,
+
 a.onclick = $a => (
     a.requestPointerLock(),
     a.onclick = 0,
     a.onmousemove = $a => $deadFrames == 0 && (
-        $viewYaw += .003*$a.movementX,
-        $viewPitch -= .003*$a.movementY
+        $viewYaw += $sensitivity*$a.movementX,
+        $viewPitch -= $sensitivity*$a.movementY
     )
 ),
 
 $readFloat = $a => ($shaderReadBuffer[$a]/255 + $shaderReadBuffer[$a+1]/255/255)*2 - 1,
 
-document.onkeydown = $a => $keys[$a.keyCode] = 1,
+$setMousesensitivity = $a => $a > 48 && $a < 58 && ($sensitivity = .0005*($a-48)),
+
+document.onkeydown = $a => ($keys[$a.keyCode] = 1, $setMousesensitivity($a.keyCode)),
 document.onkeyup = $a => $keys[$a.keyCode] = 0,
 
 $main = $a => (
