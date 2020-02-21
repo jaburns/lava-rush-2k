@@ -56,7 +56,6 @@ $readFloat = $a => ($shaderReadBuffer[$a]/255 + $shaderReadBuffer[$a+1]/255/255)
 
 $main = $a => (
     DEAD_FRAMES > 180 && $init(),
-    DEAD_FRAMES == -31 && $init(),
 
     $vy -= .02,
     PLAYER_Y += $vy,
