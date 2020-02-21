@@ -87,7 +87,7 @@ $main = $a => (
             g.uniform4fv(g.getUniformLocation($shader, 'g'), $shaderWriteBuffer),
             3
         ),
-        0, 2, 1, g.RGBA, 5121, $shaderReadBuffer // g.UNSIGNED_BYTE = 5121
+        0, 2, 1, g.RGBA, g.UNSIGNED_BYTE, $shaderReadBuffer
     ),
 
     PLAYER_X += $readFloat(0),

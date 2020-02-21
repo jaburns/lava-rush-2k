@@ -131,7 +131,6 @@ void main()
     }
 // ---------------------------------------------------------
 
-    float dy = totalDist;
     ro = g[1].xyz; 
     rd = normalize(vec3(uv, 1));
 
@@ -139,14 +138,14 @@ void main()
     vec3 pdelta = vec3(0);
     vec3 roo = ro;
     float dxz = map( ro - vec3(0,2,0) ).w; // 2 = player height (3) - collision ring elevation (1)
-    if (dy < 3.) pdelta.y = 3.-dy; // 3 = player height
+    if (totalDist < 3.) pdelta.y = 3.-totalDist; // 3 = player height
     if (dxz < 2.) pdelta.xz = (2.-dxz) * getNormal( ro - vec3(0,2,0) ).xz; // 2 = player xz radius
     mapMode = 0;
 
     if (gl_FragCoord.x <= 2. && gl_FragCoord.y < 1.) {
         gl_FragColor = gl_FragCoord.x < 1.
             ? vec4(writeFloat(pdelta.x),writeFloat(pdelta.y))
-            : vec4(writeFloat(pdelta.z), dy < 3. ? 1 : 0, 0);
+            : vec4(writeFloat(pdelta.z), totalDist < 3. ? 1 : 0, 0);
         return;
     }
 
