@@ -70,7 +70,7 @@ vec4 map( vec3 p0 )
         float sf = surfFunc(p0);
         d.w -= sf;
         d.xyz -= sf;
-        d.xyz += .5*pow(1.-sf,3.)*vec3(1,.25,.1);
+        d.xyz += pow(1.-sf,3.)*vec3(1,.25,.1)*(.75+.25*sin(g[0].z));
     }
 
     return d;
@@ -169,7 +169,7 @@ void main()
 
     float ph = -(roo.y - g[0].z) / rd.y;
     if ( ph > 0.0 && (ph < totalDist || totalDist > 200.) ) {
-        glowI = 2.;
+        glowI = 2.-surfFunc(roo+ph*rd);
         albedo = vec3(1);
         pointLightI = 0.;
         totalDist = ph;

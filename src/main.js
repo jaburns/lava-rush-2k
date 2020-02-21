@@ -108,6 +108,8 @@ $main = $a => (
     $shaderWriteBuffer[6] += $readFloat(4),
     $shaderReadBuffer[6] && ( $vy = 0, $canJump = 1 ),
 
+    // TODO golf and handle win condition better
+    // Plus version frame rate limit, 
     $shaderWriteBuffer[5] > 300 && ($deadFrames = -120),
 
     requestAnimationFrame($main)
