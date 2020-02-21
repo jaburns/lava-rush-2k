@@ -2,19 +2,23 @@ uniform vec4 g[2];
 
 int mapMode;
 
-mat2 rot( float theta )
+mat2 rot( float t )
 {
-    return mat2( cos( theta ), sin( theta ), -sin( theta ), cos( theta ) );
+    return mat2(cos(t), sin(t), -sin(t), cos(t));
 }
 
-float noise(vec2 n)
+float hash( vec2 n )
 { 
     return fract(sin(dot(n, vec2(12.9, 4.1))) * 43.5);
 }	
 
-// From Shane: https://www.shadertoy.com/view/4tSXRm
-vec3 tri(in vec3 x){return abs(x-floor(x)-.5);} 
-float surfFunc(in vec3 p){
+// ----- From Shane's "Jagged Plain" demo: https://www.shadertoy.com/view/4tSXRm -----
+vec3 tri( vec3 x )
+{
+    return abs(x-floor(x)-.5);
+} 
+float surfFunc( vec3 p )
+{
     float n = dot(tri(p*.15 + tri(p.yzx*.075)), vec3(.444));
     p = p*1.5773 - n;
     p.yz = vec2(p.y + p.z, p.z - p.y) * .866;
@@ -22,6 +26,7 @@ float surfFunc(in vec3 p){
     n += dot(tri(p*.225 + tri(p.yzx*.1125)), vec3(.222));     
     return abs(n-.5)*1.9 + (1.-abs(sin(n*9.)))*.05;
 }
+// -----------------------------------------------------------------------------------
 
 vec4 map( vec3 p0 )
 {
@@ -36,27 +41,27 @@ vec4 map( vec3 p0 )
             vec2 id = vec2(dx,dy) + floor((p0.xz+i_CELL_HALF)/i_CELL_SIZE);
 
             vec3 q,p = p0 - vec3(id.x,-100./i_CELL_SIZE,id.y)*i_CELL_SIZE;
-            p.xz *= rot(6.3*noise(vec2(noise(id),4)));
+            p.xz *= rot(6.3*hash(vec2(hash(id),4)));
 
             q = abs(p) - vec3(
-                5. +  8.*noise(vec2(noise(id),1)),
+                5. +  8.*hash(vec2(hash(id),1)),
                 min( 400., 
                     id.y < -1. // || id.x < -1.
                         ? 0.
                         : mapMode != 1 
-                            ? 100. + 20.*noise(vec2(noise(id),2)) + 5.*id.y
-                            : p0.y > 20.*noise(vec2(noise(id),2)) + 5.*id.y
+                            ? 100. + 20.*hash(vec2(hash(id),2)) + 5.*id.y
+                            : p0.y > 20.*hash(vec2(hash(id),2)) + 5.*id.y
                                 ? 0.
                                 : 1000.
                 ),
-                5. +  8.*noise(vec2(noise(id),3))
+                5. +  8.*hash(vec2(hash(id),3))
             );
 
             p = floor(p);
             
             vec4 cd = vec4(
                 // xyz: color
-                (.45+.51*(clamp(abs(mod(fract(   noise(vec2(noise(id),5))   )*6.+vec3(0,4,2),6.)-3.)-1.,0.,1.)-.5)) // hsl to rgb
+                (.45+.51*(clamp(abs(mod(fract(   hash(vec2(hash(id),5))   )*6.+vec3(0,4,2),6.)-3.)-1.,0.,1.)-.5)) // hsl to rgb
             ,
                 // w: Distance
                 length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.) 
@@ -185,11 +190,7 @@ void main()
         + albedo * pointLightI;
 
     color = mix(i_FOG, color, exp(-totalDist/40.));
-    if (g[0].w < -30.) {
-        color = mix(vec3(1), color, (-g[0].w-30.)/90.);
-    } else {
-        color = mix(color, vec3(0), -g[0].w/30.);
-    }
+    color = mix(color, vec3(0), -g[0].w/30.);
 
     gl_FragColor = vec4(color,1);
 }

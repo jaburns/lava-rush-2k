@@ -1,5 +1,6 @@
 const shell = require('shelljs');
 const fs = require('fs');
+const consts = require('./src/consts.json');
 const _ = require('lodash');
 
 const SRC_DIR = 'src';
@@ -55,6 +56,13 @@ const minifyPrefixedIdentifiers = (prefix, js) => {
     return js;
 };
 
+const applyConsts = source => {
+    for (let k in consts) {
+        source = source.replace(new RegExp(k, 'g'), consts[k]);
+    }
+    return source;
+};
+
 const getMinifiedShader = path => {
     const inputShader = applyBuildRegions(fs.readFileSync(path, 'utf8'));
     fs.writeFileSync('tmp_in.glsl', inputShader);
@@ -93,6 +101,7 @@ const main = () => {
     js = applyBuildRegions(js);
     js = stripComments(js);
     js = removeWhitespace(js);
+    js = applyConsts(js);
     js = insertShaders(js);
     js = minifyPrefixedIdentifiers('\\$', js);
     

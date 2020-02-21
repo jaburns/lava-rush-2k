@@ -1,0 +1,10 @@
+{
+    "PLAYER_YAW":   "$shaderWriteBuffer[0]",
+    "PLAYER_PITCH": "$shaderWriteBuffer[1]",
+    "LAVA_LEVEL":   "$shaderWriteBuffer[2]",
+    "DEAD_FRAMES":  "$shaderWriteBuffer[3]",
+    "PLAYER_X":     "$shaderWriteBuffer[4]",
+    "PLAYER_Y":     "$shaderWriteBuffer[5]",
+    "PLAYER_Z":     "$shaderWriteBuffer[6]",
+    "WON_FRAMES":   "$shaderWriteBuffer[7]"
+}
