@@ -1,7 +1,5 @@
 uniform vec4 g[2];
 
-int mapMode;
-
 mat2 rot( float t )
 {
     return mat2(cos(t), sin(t), -sin(t), cos(t));
@@ -28,6 +26,8 @@ float surfFunc( vec3 p )
 }
 // -----------------------------------------------------------------------------------
 
+int mapMode; // 0: Sample for rendering, 1: Sample for xz collision check, 2: Sample for y collision check
+
 vec4 map( vec3 p0 )
 {
     const float i_CELL_SIZE = 20.;
@@ -40,13 +40,14 @@ vec4 map( vec3 p0 )
         {
             vec2 id = vec2(dx,dy) + floor((p0.xz+i_CELL_HALF)/i_CELL_SIZE);
 
-            vec3 q,p = p0 - vec3(id.x,-100./i_CELL_SIZE,id.y)*i_CELL_SIZE;
+            vec3 p = p0 - vec3(id.x,-100./i_CELL_SIZE,id.y)*i_CELL_SIZE;
+
             p.xz *= rot(6.3*hash(vec2(hash(id),4)));
 
-            q = abs(p) - vec3(
-                5. +  8.*hash(vec2(hash(id),1)),
+            vec3 q = abs(p) - vec3(
+                5.+8.*hash(vec2(hash(id),1)),
                 min( 400., 
-                    id.y < -1. // || id.x < -1.
+                    id.y < -1.
                         ? 0.
                         : mapMode != 1 
                             ? 100. + 20.*hash(vec2(hash(id),2)) + 5.*id.y
@@ -54,7 +55,7 @@ vec4 map( vec3 p0 )
                                 ? 0.
                                 : 1000.
                 ),
-                5. +  8.*hash(vec2(hash(id),3))
+                5.+8.*hash(vec2(hash(id),3))
             );
 
             p = floor(p);
@@ -101,8 +102,11 @@ vec2 writeFloat(float a)
 
 void main()
 {
+    const vec3 i_LAVA = vec3(3,.75,.3);
+    const vec3 i_FOG = vec3(0);
+
     if (g[0].w > 0.) {
-        gl_FragColor = vec4(mix(3.*vec3(1,.25,.1),vec3(0),g[0].w/60.),1);
+        gl_FragColor = vec4(mix(i_LAVA,vec3(0),g[0].w/60.),1);
         return;
     }
 
@@ -163,8 +167,6 @@ void main()
     }
 // ---------------------------------------------------------
 
-    //const vec3 i_FOG = vec3(.03,0,.05); // vec3(.3,.3,.5);
-    const vec3 i_FOG = vec3(0); // vec3(.3,.3,.5);
 
     vec3 color = i_FOG;
 
@@ -183,10 +185,10 @@ void main()
         glowI *= glowI;
         albedo = dist.xyz;
         vec3 L = g[1].xyz-ro;
-        pointLightI = .4+.6*dot(normalize(L),getNormal(ro)) / pow(.8+.005*length(L),2.);
+        pointLightI = .4+.6*dot(normalize(L),getNormal(ro));
     }
 
-    color = albedo * glowI * 3.*vec3(1,.25,.1)
+    color = albedo * glowI * i_LAVA 
         + albedo * pointLightI;
 
     color = mix(i_FOG, color, exp(-totalDist/40.));
