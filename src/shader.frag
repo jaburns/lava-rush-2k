@@ -12,11 +12,15 @@ float noise(vec2 n)
     return fract(sin(dot(n, vec2(12.9, 4.1))) * 43.5);
 }	
 
-float sdCapsule( vec3 p, vec3 a, vec3 b, float r )
-{
-    vec3 pa = p - a, ba = b - a;
-    float h = clamp( dot(pa,ba)/dot(ba,ba), 0.0, 1.0 );
-    return length( pa - ba*h ) - r;
+// From Shane: https://www.shadertoy.com/view/4tSXRm
+vec3 tri(in vec3 x){return abs(x-floor(x)-.5);} 
+float surfFunc(in vec3 p){
+    float n = dot(tri(p*.15 + tri(p.yzx*.075)), vec3(.444));
+    p = p*1.5773 - n;
+    p.yz = vec2(p.y + p.z, p.z - p.y) * .866;
+    p.xz = vec2(p.x + p.z, p.z - p.x) * .866;
+    n += dot(tri(p*.225 + tri(p.yzx*.1125)), vec3(.222));     
+    return abs(n-.5)*1.9 + (1.-abs(sin(n*9.)))*.05;
 }
 
 vec4 map( vec3 p0 )
@@ -36,29 +40,37 @@ vec4 map( vec3 p0 )
 
             q = abs(p) - vec3(
                 5. +  8.*noise(vec2(noise(id),1)),
-                id.y < -1. // || id.x < -1.
-                    ? 0.
-                    : mapMode == 0 
-                        ? 100. + 20.*noise(vec2(noise(id),2)) + 5.*id.y
-                        : p0.y > 20.*noise(vec2(noise(id),2)) + 5.*id.y
-                            ? 0.
-                            : 1000. ,
+                min( 400., 
+                    id.y < -1. // || id.x < -1.
+                        ? 0.
+                        : mapMode != 1 
+                            ? 100. + 20.*noise(vec2(noise(id),2)) + 5.*id.y
+                            : p0.y > 20.*noise(vec2(noise(id),2)) + 5.*id.y
+                                ? 0.
+                                : 1000.
+                ),
                 5. +  8.*noise(vec2(noise(id),3))
             );
 
             p = floor(p);
             
             vec4 cd = vec4(
-                // xyz: Color
-                (1.-.3*mod(p.x+p.y+p.z,2.)) // checkerboard
-                * (.45+.51*(clamp(abs(mod(fract(noise(vec2(noise(id),5)))*6.+vec3(0,4,2),6.)-3.)-1.,0.,1.)-.5)) // hsl to rgb
+                // xyz: color
+                (.45+.51*(clamp(abs(mod(fract(   noise(vec2(noise(id),5))   )*6.+vec3(0,4,2),6.)-3.)-1.,0.,1.)-.5)) // hsl to rgb
             ,
                 // w: Distance
-                length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.)
+                length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.) 
             );
 
             d = cd.w < d.w ? cd : d;
         }
+    }
+
+    if (mapMode == 0) {
+        float sf = surfFunc(p0);
+        d.w -= sf;
+        d.xyz -= sf;
+        d.xyz += .5*pow(1.-sf,3.)*vec3(1,.25,.1);
     }
 
     return d;
@@ -97,7 +109,7 @@ void main()
     vec3 ro = g[1].xyz;
     vec3 rd = vec3(0,-1,0);
 
-    mapMode = 0;
+    mapMode = 2;
 
 // ---- March ----------------------------------------------
     totalDist = 0.;
@@ -105,8 +117,8 @@ void main()
     for( int i = 0; i < 99; ++i ) {
         dist = map( ro );
         if( dist.w < .001 || totalDist > 200. ) break;
-        totalDist += dist.w*.9;
-        ro += rd * dist.w*.9;
+        totalDist += dist.w*.8;
+        ro += rd * dist.w*.8;
     }
 // ---------------------------------------------------------
 
@@ -141,8 +153,8 @@ void main()
     for( int i = 0; i < 99; ++i ) {
         dist = map( ro );
         if( dist.w < .001 || totalDist > 200. ) break;
-        totalDist += dist.w*.9;
-        ro += rd * dist.w*.9;
+        totalDist += dist.w*.8;
+        ro += rd * dist.w*.8;
     }
 // ---------------------------------------------------------
 
@@ -173,7 +185,11 @@ void main()
         + albedo * pointLightI;
 
     color = mix(i_FOG, color, exp(-totalDist/40.));
-    color = mix(color, vec3(0), -g[0].w/30.);
+    if (g[0].w < -30.) {
+        color = mix(vec3(1), color, (-g[0].w-30.)/90.);
+    } else {
+        color = mix(color, vec3(0), -g[0].w/30.);
+    }
 
     gl_FragColor = vec4(color,1);
 }

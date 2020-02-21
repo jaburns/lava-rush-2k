@@ -11,7 +11,7 @@ $b = g.createShader(g.FRAGMENT_SHADER),
 g.shaderSource($b, $a),
 g.compileShader($b),
 g.attachShader($shader, $b),
-//console.log(g.getShaderInfoLog($b)),
+console.log(g.getShaderInfoLog($b)),
 
 g.vertexAttribPointer(
     g.linkProgram($shader),
@@ -51,25 +51,31 @@ $readFloat = $a => ($shaderReadBuffer[$a]/255 + $shaderReadBuffer[$a+1]/255/255)
 
 $setMousesensitivity = $a => $a > 48 && $a < 58 && ($sensitivity = .0005*($a-48)),
 
-document.onkeydown = $a => ($keys[$a.keyCode] = 1, $setMousesensitivity($a.keyCode)),
+document.onkeydown = $a => ($keys[$a.keyCode] = 1, $setMousesensitivity($a.keyCode),1),
 document.onkeyup = $a => $keys[$a.keyCode] = 0,
 
 $main = $a => (
     $deadFrames > 180 && $init(),
+    $deadFrames == -31 && $init(),
 
     $vy -= .02,
     $shaderWriteBuffer[5] += $vy,
 
     $vx = $vz = 0,
-    $keys[87] && ($vx += Math.sin($viewYaw), $vz += Math.cos($viewYaw)),
-    $keys[83] && ($vx -= Math.sin($viewYaw), $vz -= Math.cos($viewYaw)),
-    $keys[68] && ($vx += Math.cos($viewYaw), $vz -= Math.sin($viewYaw)),
-    $keys[65] && ($vx -= Math.cos($viewYaw), $vz += Math.sin($viewYaw)),
-    $keys[32] && $canJump && ($shaderWriteBuffer[5] += ($vy = .5), $canJump = 0),
 
-    $vx && $vz && (
-        $vx /= Math.sqrt($vz*$vz + $vx*$vx),
-        $vz /= Math.sqrt($vz*$vz + $vx*$vx)),
+    $deadFrames > -31 && (
+
+        $keys[87] && ($vx += Math.sin($viewYaw), $vz += Math.cos($viewYaw)),
+        $keys[83] && ($vx -= Math.sin($viewYaw), $vz -= Math.cos($viewYaw)),
+        $keys[68] && ($vx += Math.cos($viewYaw), $vz -= Math.sin($viewYaw)),
+        $keys[65] && ($vx -= Math.cos($viewYaw), $vz += Math.sin($viewYaw)),
+        $keys[32] && $canJump && ($shaderWriteBuffer[5] += ($vy = .5), $canJump = 0),
+
+        $vx && $vz && (
+            $vx /= Math.sqrt($vz*$vz + $vx*$vx),
+            $vz /= Math.sqrt($vz*$vz + $vx*$vx))
+
+    ),
 
     $vx1 += ($vx - $vx1)/5,
     $vz1 += ($vz - $vz1)/5,
@@ -101,6 +107,8 @@ $main = $a => (
     $shaderWriteBuffer[5] += $readFloat(2),
     $shaderWriteBuffer[6] += $readFloat(4),
     $shaderReadBuffer[6] && ( $vy = 0, $canJump = 1 ),
+
+    $shaderWriteBuffer[5] > 300 && ($deadFrames = -120),
 
     requestAnimationFrame($main)
 ),
