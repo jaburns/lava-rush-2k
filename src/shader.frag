@@ -26,14 +26,14 @@ float surfFunc( vec3 p )
 }
 // -----------------------------------------------------------------------------------
 
-int mapMode; // 0: Sample for rendering, 1: Sample for xz collision check, 2: Sample for y collision check
+int mapMode; // 0: Sample for rendering, 1: Sample for xz collision check, 2: Sample for y collision check, 3: color
 
-vec4 map( vec3 p0 )
+float map( vec3 p0 )
 {
     const float i_CELL_SIZE = 20.;
     const float i_CELL_HALF = 10.;
 
-    vec4 d = vec4(200);
+    float d = 200.;
 
     for( float dx = -1.; dx <= 1.; dx++ ) {
         for( float dy = -1.; dy <= 1.; dy++ )
@@ -58,26 +58,12 @@ vec4 map( vec3 p0 )
                 5.+8.*hash(vec2(hash(id),3))
             );
 
-            p = floor(p);
-            
-            vec4 cd = vec4(
-                // xyz: color
-                (.45+.51*(clamp(abs(mod(fract(   hash(vec2(hash(id),5))   )*6.+vec3(0,4,2),6.)-3.)-1.,0.,1.)-.5)) // hsl to rgb
-            ,
-                // w: Distance
-                length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.) 
-            );
-
-            d = cd.w < d.w ? cd : d;
+            d = min(d, length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.));
         }
     }
 
-    if (mapMode == 0) {
-        float sf = surfFunc(p0);
-        d.w -= sf;
-        d.xyz -= sf;
-        d.xyz += pow(1.-sf,3.)*vec3(1,.25,.1)*(.75+.25*sin(g[0].z));
-    }
+    if (mapMode == 0)
+        d -= surfFunc(p0);
 
     return d;
 }
@@ -86,9 +72,9 @@ vec3 getNormal(vec3 p)
 {
     vec2 e = vec2(.001, 0);
     return normalize(vec3(
-        map(p + e.xyy).w - map(p - e.xyy).w,
-        map(p + e.yxy).w - map(p - e.yxy).w,
-        map(p + e.yyx).w - map(p - e.yyx).w));
+        map(p + e.xyy) - map(p - e.xyy),
+        map(p + e.yxy) - map(p - e.yxy),
+        map(p + e.yyx) - map(p - e.yyx)));
 }
 
 vec2 writeFloat(float a)
@@ -111,7 +97,7 @@ void main()
     }
 
     float totalDist;
-    vec4 dist;
+    float dist;
 
     vec2 uv = (gl_FragCoord.xy - .5*vec2(320,200))/200.;
 
@@ -122,12 +108,12 @@ void main()
 
 // ---- March ----------------------------------------------
     totalDist = 0.;
-    dist = vec4(0);
+    dist = 0.;
     for( int i = 0; i < 99; ++i ) {
         dist = map( ro );
-        if( dist.w < .001 || totalDist > 200. ) break;
-        totalDist += dist.w*.8;
-        ro += rd * dist.w*.8;
+        if( dist < .001 || totalDist > 200. ) break;
+        totalDist += dist*.8;
+        ro += rd * dist*.8;
     }
 // ---------------------------------------------------------
 
@@ -137,7 +123,7 @@ void main()
     mapMode = 1;
     vec3 pdelta = vec3(0);
     vec3 roo = ro;
-    float dxz = map( ro - vec3(0,2,0) ).w; // 2 = player height (3) - collision ring elevation (1)
+    float dxz = map( ro - vec3(0,2,0) ); // 2 = player height (3) - collision ring elevation (1)
     if (totalDist < 3.) pdelta.y = 3.-totalDist; // 3 = player height
     if (dxz < 2.) pdelta.xz = (2.-dxz) * getNormal( ro - vec3(0,2,0) ).xz; // 2 = player xz radius
     mapMode = 0;
@@ -157,12 +143,12 @@ void main()
 
 // ---- March ----------------------------------------------
     totalDist = 0.;
-    dist = vec4(0);
+    dist = 0.;
     for( int i = 0; i < 99; ++i ) {
         dist = map( ro );
-        if( dist.w < .001 || totalDist > 200. ) break;
-        totalDist += dist.w*.8;
-        ro += rd * dist.w*.8;
+        if( dist < .001 || totalDist > 200. ) break;
+        totalDist += dist*.8;
+        ro += rd * dist*.8;
     }
 // ---------------------------------------------------------
 
@@ -182,7 +168,14 @@ void main()
     } else if (totalDist < 200.) {
         glowI = 2.*clamp(1.-.1*(ro.y-g[0].z),0.,1.);
         glowI *= glowI;
-        albedo = dist.xyz;
+
+        // hsl to rgb
+        vec3 gnd = (.45+.51*(clamp(abs(mod(fract(  .005*(ro.x+ro.y+ro.z)  )*6.+vec3(0,4,2),6.)-3.)-1.,0.,1.)-.5));
+        float sf = surfFunc(ro);
+        gnd -= sf;
+        gnd += pow(1.-sf,3.)*vec3(1,.25,.1)*(.75+.25*sin(g[0].z));
+
+        albedo = gnd; 
         vec3 L = g[1].xyz-ro;
         pointLightI = .4+.6*dot(normalize(L),getNormal(ro));
     }
