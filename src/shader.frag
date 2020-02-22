@@ -30,6 +30,7 @@ int mapMode; // 0: Sample for rendering, 1: Sample for xz collision check, 2: Sa
 
 float map( vec3 p0 )
 {
+    const float i_ROUNDING = 1.;
     const float i_CELL_SIZE = 20.;
     const float i_CELL_HALF = 10.;
 
@@ -57,13 +58,16 @@ float map( vec3 p0 )
                 ),
                 5.+8.*hash(vec2(hash(id),3))
             );
+            if (mapMode == 0) q += i_ROUNDING;
 
             d = min(d, length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.));
         }
     }
 
-    if (mapMode == 0)
+    if (mapMode == 0) {
+        d -= i_ROUNDING;
         d -= surfFunc(p0);
+    }
 
     return .8*d;
 }
