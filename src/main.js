@@ -1,18 +1,24 @@
 //!plus
-    plus_audioIsInit = false;
-    plus_initAudio = () => {
-        if (plus_audioIsInit) return;
-        plus_audioIsInit = true;
-        plus_MUSIC_VOL = .5,
-        plus_stepCounter = 0,
-        plus_grounded = false,
+    plus_MUSIC_VOL = .5;
 
+    plus_didThrottleFPS = false;
+    plus_lastFrameTime = 0;
+    plus_frameTimeBuffer = [];
+    plus_frames = 0;
+    plus_stepCounter = 0;
+    plus_grounded = false;
+    plus_fireVol = 0;
+
+    g.clearColor(0,0,0,1);
+    g.clear(g.COLOR_BUFFER_BIT);
+    a.style.cursor = 'pointer';
+    s.innerText = 'Click#to#start';
+
+    a.onclick = () => {
         plus_music = new Howl({
             src: ['music.mp3'],
             volume: plus_MUSIC_VOL,
         });
-
-        plus_fireVol = 0;
 
         plus_fire = new Howl({
             src: ['rising_fire.wav'],
@@ -25,14 +31,7 @@
             src: ['step.wav'],
             volume: .4,
         });
-    };
 
-    g.clearColor(0,0,0,1);
-    g.clear(g.COLOR_BUFFER_BIT);
-    a.style.cursor = 'pointer';
-    s.innerText = 'Click#to#start';
-    a.onclick = () => {
-        plus_initAudio();
         s.innerText = '';
         a.requestPointerLock();
         a.onmousemove = a.onmousemove || ($a => DEAD_FRAMES == 0 && (
@@ -78,9 +77,9 @@ $init = $a => (
     $canJump = 0,
     $keys = {}
 
-    //!plus
+//!plus
     ,plus_musicStarted = false
-    //!end
+//!end
 ),
 
 $sensitivity = .003,
@@ -129,7 +128,7 @@ $main = $a => (
         && DEAD_FRAMES++
         || (s.innerText = ($score = PLAYER_Y > $score ? PLAYER_Y|0 : $score)),
 
-    //!plus
+//!plus
     DEAD_FRAMES == 1 && (
         plus_music.fade(plus_MUSIC_VOL, 0, 3000),
         plus_fire.fade(plus_fireVol, 0, 2000),
@@ -142,7 +141,7 @@ $main = $a => (
     ),
     ($vx || $vz) && plus_grounded && plus_stepCounter % 16 == 0 && plus_step.rate(.8+.4*Math.random(), plus_step.play()),
     plus_stepCounter++,
-    //!end
+//!end
 
     g.readPixels(
         g.drawArrays(
@@ -160,9 +159,8 @@ $main = $a => (
         $vy = 0,
         $canJump = 1
 
-        //!plus
-        ,
-        !plus_musicStarted && (
+//!plus
+        ,!plus_musicStarted && (
             plus_musicStarted = true,
             !plus_music.playing() && plus_music.play(),
             plus_music.seek(0),
@@ -173,19 +171,34 @@ $main = $a => (
             plus_stepCounter = 1,
             plus_grounded = true
         )
-        //!end
+//!end
     ),
 
-    //!plus
+//!plus
     !$shaderReadBuffer[6] && (plus_grounded = false),
-    //!end
+
+    !plus_didThrottleFPS && plus_frames++ > 30 && (
+        plus_nuFrameTime = performance.now(),
+        plus_lastFrameTime !== 0 && plus_frameTimeBuffer.push(plus_nuFrameTime - plus_lastFrameTime),
+        plus_lastFrameTime = plus_nuFrameTime,
+
+        plus_frameTimeBuffer.length > 30 && (
+            plus_FPS = 1000 / (plus_frameTimeBuffer.reduce((a, x) => a + x) / plus_frameTimeBuffer.length),
+            plus_frameTimeBuffer = [],
+            plus_FPS > 70 && (
+                plus_didThrottleFPS = true,
+                setInterval($main, 1000 / 60)
+            )
+        )
+    ),
+
+    !plus_didThrottleFPS &&
+//!end
 
     requestAnimationFrame($main)
 ),
 $init(),$main()
 
-
-
 //!plus
-;}
+}
 //!end

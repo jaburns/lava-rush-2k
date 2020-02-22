@@ -3,12 +3,14 @@ const fs = require('fs');
 const consts = require('./src/consts.json');
 const _ = require('lodash');
 
+const GAME_NAME = 'lava-rush';
 const SRC_DIR = 'src';
 const MODE = process.argv[2] === 'plus' ? 'plus' : '2k';
 
 const FLAGS = {
     useRegPack: true,
     decompressRegPack: true,
+    usePrecisionHeader: true,
 };
 
 const applyBuildRegions = source => {
@@ -68,11 +70,21 @@ const getMinifiedShader = path => {
     fs.writeFileSync('tmp_in.glsl', inputShader);
 
     const SHADER_MIN_TOOL = process.platform === 'win32' ? 'tools\\shader_minifier.exe' : 'mono tools/shader_minifier.exe';
-    shell.exec(`${SHADER_MIN_TOOL} --preserve-externals --no-renaming-list main --format none tmp_in.glsl -o tmp_out.glsl`);
-    const result = fs.readFileSync('tmp_out.glsl', 'utf8');
+    shell.exec(`${SHADER_MIN_TOOL} --preserve-externals --no-renaming-list main,i --format none tmp_in.glsl -o tmp_out.glsl`);
+    let result = fs.readFileSync('tmp_out.glsl', 'utf8');
+
+    // Force the raymarching loops to use the same iterator variable name
+    result = result.replace(/for\(float .=0\.;.<99\.;\+\+.\)/g, 'for(float o=0.;o<99.;++o)');
     
     if (path.endsWith('.frag')) {
-        return 'precision highp float;' + result;
+        if (FLAGS.usePrecisionHeader) {
+            result = 'precision highp float;' + result;
+        } else {
+            result = result
+                .replace(/vec(.) /g, 'highp vec$1 ')
+                .replace(/mat(.) /g, 'highp mat$1 ')
+                .replace(/float /g, 'highp float ');
+        }
     }
 
     return result;
@@ -138,7 +150,7 @@ const main = () => {
 
     const BUILD_DIR = MODE === 'plus' ? 'plus' : 'docs';
     const HTML_NAME = MODE === 'plus' ? 'index.html' : 'a.html';
-    const ZIP_NAME = `marble-vault-${MODE}.zip`;
+    const ZIP_NAME = `${GAME_NAME}-${MODE}.zip`;
 
     if (MODE === '2k') shell.mkdir('-p', BUILD_DIR);
 

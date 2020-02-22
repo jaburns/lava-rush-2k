@@ -100,8 +100,7 @@ void main()
         return;
     }
 
-    float totalDist;
-    float dist;
+    float totalDist, dist;
 
     vec2 uv = (gl_FragCoord.xy - .5*vec2(320,200))/200.;
 
@@ -112,7 +111,7 @@ void main()
 
 // ---- March ----------------------------------------------
     totalDist = 0.;
-    for( float i = 0.; i < 99.; ++i ) {
+    for( float c = 0.; c < 99.; ++c ) {
         dist = map( ro );
         if( dist < .001 || totalDist > 200. ) break;
         totalDist += dist;
@@ -146,14 +145,13 @@ void main()
 
 // ---- March ----------------------------------------------
     totalDist = 0.;
-    for( float i = 0.; i < 99.; ++i ) {
+    for( float c = 0.; c < 99.; ++c ) {
         dist = map( ro );
         if( dist < .001 || totalDist > 200. ) break;
         totalDist += dist;
         ro += rd * dist;
     }
 // ---------------------------------------------------------
-
 
     vec3 color = i_FOG;
 
