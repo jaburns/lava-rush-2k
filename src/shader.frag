@@ -65,7 +65,7 @@ float map( vec3 p0 )
     if (mapMode == 0)
         d -= surfFunc(p0);
 
-    return d;
+    return .8*d;
 }
 
 vec3 getNormal(vec3 p)
@@ -108,12 +108,11 @@ void main()
 
 // ---- March ----------------------------------------------
     totalDist = 0.;
-    dist = 0.;
-    for( int i = 0; i < 99; ++i ) {
+    for( float i = 0.; i < 99.; ++i ) {
         dist = map( ro );
         if( dist < .001 || totalDist > 200. ) break;
-        totalDist += dist*.8;
-        ro += rd * dist*.8;
+        totalDist += dist;
+        ro += rd * dist;
     }
 // ---------------------------------------------------------
 
@@ -123,7 +122,7 @@ void main()
     mapMode = 1;
     vec3 pdelta = vec3(0);
     vec3 roo = ro;
-    float dxz = map( ro - vec3(0,2,0) ); // 2 = player height (3) - collision ring elevation (1)
+    float dxz = map( ro - vec3(0,2,0) )/.8; // 2 = player height (3) - collision ring elevation (1)
     if (totalDist < 3.) pdelta.y = 3.-totalDist; // 3 = player height
     if (dxz < 2.) pdelta.xz = (2.-dxz) * getNormal( ro - vec3(0,2,0) ).xz; // 2 = player xz radius
     mapMode = 0;
@@ -143,12 +142,11 @@ void main()
 
 // ---- March ----------------------------------------------
     totalDist = 0.;
-    dist = 0.;
-    for( int i = 0; i < 99; ++i ) {
+    for( float i = 0.; i < 99.; ++i ) {
         dist = map( ro );
         if( dist < .001 || totalDist > 200. ) break;
-        totalDist += dist*.8;
-        ro += rd * dist*.8;
+        totalDist += dist;
+        ro += rd * dist;
     }
 // ---------------------------------------------------------
 
