@@ -42,7 +42,6 @@
     ;
 //!end
 
-
 $shader = g.createProgram(),
 
 $a = __shader('shader.vert'),
@@ -179,7 +178,7 @@ $main = $a => (
 
     //!plus
     !$shaderReadBuffer[6] && (plus_grounded = false),
-    //
+    //!end
 
     requestAnimationFrame($main)
 ),
