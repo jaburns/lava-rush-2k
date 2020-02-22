@@ -1,14 +1,16 @@
 uniform vec4 g[2];
 
+const float i_SEED = 86.;
+
 mat2 rot( float t )
 {
     return mat2(cos(t), sin(t), -sin(t), cos(t));
 }
 
 float hash( vec2 n )
-{ 
+{
     return fract(sin(dot(n, vec2(12.9, 4.1))) * 43.5);
-}	
+}
 
 // ----- From Shane's "Jagged Plain" demo: https://www.shadertoy.com/view/4tSXRm -----
 vec3 tri( vec3 x )
@@ -43,20 +45,20 @@ float map( vec3 p0 )
 
             vec3 p = p0 - vec3(id.x,-100./i_CELL_SIZE,id.y)*i_CELL_SIZE;
 
-            p.xz *= rot(6.3*hash(vec2(hash(id),4)));
+            p.xz *= rot(6.3*hash(id+i_SEED*4.));
 
             vec3 q = abs(p) - vec3(
-                5.+8.*hash(vec2(hash(id),1)),
+                5.+8.*hash(id+i_SEED),
                 min( 400., 
                     id.y < -1.
                         ? 0.
                         : mapMode != 1 
-                            ? 100. + 20.*hash(vec2(hash(id),2)) + 5.*id.y
-                            : p0.y > 20.*hash(vec2(hash(id),2)) + 5.*id.y
+                            ? 100. + 20.*hash(id+i_SEED*2.) + 5.*id.y
+                            : p0.y > 20.*hash(id+i_SEED*2.) + 5.*id.y
                                 ? 0.
                                 : 1000.
                 ),
-                5.+8.*hash(vec2(hash(id),3))
+                5.+8.*hash(id+i_SEED*3.)
             );
             if (mapMode == 0) q += i_ROUNDING;
 
