@@ -157,33 +157,24 @@ void main()
 
     vec3 color = i_FOG;
 
-    vec3 albedo;
-    float pointLightI;
-    float glowI;
-
     float ph = -(roo.y - g[0].z) / rd.y;
     if ( ph > 0.0 && (ph < totalDist || totalDist > 200.) ) {
-        glowI = 2.-surfFunc(roo+ph*rd);
-        albedo = vec3(1);
-        pointLightI = 0.;
+        color = (2.-surfFunc(roo+ph*rd))*i_LAVA;
         totalDist = ph;
     } else if (totalDist < 200.) {
-        glowI = 2.*clamp(1.-.1*(ro.y-g[0].z),0.,1.);
-        glowI *= glowI;
-
         // hsl to rgb
-        vec3 gnd = (.45+.51*(clamp(abs(mod(fract(  .005*(ro.x+ro.y+ro.z)  )*6.+vec3(0,4,2),6.)-3.)-1.,0.,1.)-.5));
-        float sf = surfFunc(ro);
-        gnd -= sf;
-        gnd += pow(1.-sf,3.)*vec3(1,.25,.1)*(.75+.25*sin(g[0].z));
+        vec3 albedo = .45+.51*(clamp(abs(mod(fract(  .005*(ro.x+ro.y+ro.z)  )*6.+vec3(0,4,2),6.)-3.)-1.,0.,1.)-.5);
 
-        albedo = gnd; 
-        vec3 L = g[1].xyz-ro;
-        pointLightI = .4+.6*dot(normalize(L),getNormal(ro));
+        dist = surfFunc(ro);
+        albedo -= dist;
+        albedo += pow(1.-dist,3.)*vec3(1,.25,.1)*(.75+.25*sin(g[0].z));
+
+        color = albedo * (
+            pow(2.*clamp(1.-.1*(ro.y-g[0].z),0.,1.),2.)*i_LAVA // rising lava glow
+            +
+            .4+.6*dot(normalize(g[1].xyz-ro),getNormal(ro)) // player point light
+        );
     }
-
-    color = albedo * glowI * i_LAVA 
-        + albedo * pointLightI;
 
     color = mix(i_FOG, color, exp(-totalDist/40.));
     color = mix(color, vec3(0), -g[0].w/30.);
