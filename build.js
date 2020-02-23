@@ -2,14 +2,15 @@ const shell = require('shelljs');
 const fs = require('fs');
 const consts = require('./src/consts.json');
 const _ = require('lodash');
+const ShapeShifter = require('regpack/shapeShifter');
 
 const GAME_NAME = 'lava-rush';
 const SRC_DIR = 'src';
-const MODE = process.argv[2] === 'plus' ? 'plus' : '2k';
+const MODE = process.argv[2] === 'plus' || process.argv[2] === 'pluszip' ? 'plus' : '2k';
+const SHOULD_ZIP = process.argv[2] !== 'plus';
 
 const FLAGS = {
-    useRegPack: true,
-    decompressRegPack: true,
+    useRegPackShapeShifter: true,
     usePrecisionHeader: true,
 };
 
@@ -108,6 +109,8 @@ const removeWhitespace = js => js
     .replace(/#/g, ' ');
 
 const main = () => {
+    console.log('Building...');
+
     let js = fs.readFileSync(SRC_DIR + '/main.js', 'utf8');
 
     js = applyBuildRegions(js);
@@ -116,34 +119,16 @@ const main = () => {
     js = applyConsts(js);
     js = insertShaders(js);
     js = minifyPrefixedIdentifiers('\\$', js);
-    
-    if (FLAGS.useRegPack) {
-        fs.writeFileSync('tmp_in.js', js);
 
-        console.log('Packing...');
-        shell.exec('regpack '+
-            '--contextType 1 '+
-            '--crushGainFactor 1 '+
-            '--crushLengthFactor 0 '+
-            '--crushCopiesFactor 0 '+
-            '--crushTiebreakerFactor 0 '+
-            '--hashWebGLContext true '+
-            '--contextVariableName g '+
-            '--varsNotReassigned g,a,s '+
-            '--useES6 true ' +
-            'tmp_in.js > tmp_out.js'
-        );
-        console.log('');
-
-        js = fs.readFileSync('tmp_out.js', 'utf8');
-
-        if (FLAGS.decompressRegPack && js.indexOf('eval(_)') >= 0) {
-            console.log('Reversing RegPack compression...');
-            fs.writeFileSync('tmp_in.js', js.replace('eval(_)', 'console.log(_)'));
-            shell.exec('node tmp_in.js > tmp_out.js');
-            js = fs.readFileSync('tmp_out.js', 'utf8');
-            console.log('');
-        }
+    if (FLAGS.useRegPackShapeShifter) {
+        js = new ShapeShifter().preprocess(js, {
+            hashWebGLContext: true,
+            contextVariableName: 'g',
+            contextType: 1,
+            reassignVars: true,
+            varsNotReassigned: ['g','a','s'],
+            useES6: true,
+        })[2].contents;
     }
 
     const shimHTML = minifyHTML(applyBuildRegions(fs.readFileSync(SRC_DIR + '/index.html', 'utf8')));
@@ -160,15 +145,21 @@ const main = () => {
         + shimHTML.replace(/[^_]*__CODE__/,'')
     );
 
-    shell.cd(BUILD_DIR);
-    if (MODE === 'plus') {
-        shell.exec('..\\tools\\advzip.exe -q -a -4 ../'+ZIP_NAME+' *.*');
-    } else {
-        shell.exec('..\\tools\\advzip.exe -q -a -4 ../'+ZIP_NAME+' '+HTML_NAME);
-    }
-    shell.cd('..');
+    if (SHOULD_ZIP) {
+        console.log('Zipping...');
 
-    console.log('Zipped: ' + fs.statSync(ZIP_NAME).size + ' / 2048');
+        shell.cd(BUILD_DIR);
+        if (MODE === 'plus') {
+            shell.exec('..\\tools\\advzip.exe -q -a -4 ../'+ZIP_NAME+' *.*');
+        } else {
+            shell.exec('..\\tools\\advzip.exe -q -a -4 ../'+ZIP_NAME+' '+HTML_NAME);
+        }
+        shell.cd('..');
+
+        console.log('Zipped: ' + fs.statSync(ZIP_NAME).size + ' / 2048');
+    } else {
+        console.log('Done');
+    }
     console.log('');
     
     shell.rm('-rf', 'tmp*.*');

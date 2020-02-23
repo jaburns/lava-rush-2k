@@ -4,7 +4,8 @@
   "scripts": {
     "start": "node test-server.js",
     "2k": "node build.js 2k",
-    "plus": "node build.js plus"
+    "plus": "node build.js plus",
+    "pluszip": "node build.js pluszip"
   },
   "devDependencies": {
     "express": "^4.17.1",
