@@ -177,7 +177,7 @@ void main()
     }
 
     color = mix(i_FOG, color, exp(-totalDist/40.));
-    color = mix(color, vec3(0), -g[0].w/30.);
+    color = mix(color, vec3(0), -g[0].w/30. + min(1.,g[1].w/180.));
 
     gl_FragColor = vec4(color,1);
 }

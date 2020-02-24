@@ -86,7 +86,7 @@ $sensitivity = .003,
 
 a.onclick = $a => (
     a.requestPointerLock(),
-    a.onmousemove = a.onmousemove || ($a => DEAD_FRAMES == 0 && (
+    a.onmousemove = a.onmousemove || ($a => !DEAD_FRAMES && WON_FRAMES < 1 && (
         PLAYER_YAW += $sensitivity*$a.movementX,
         PLAYER_PITCH -= $sensitivity*$a.movementY
     ))
@@ -108,14 +108,19 @@ $main = $a => (
     PLAYER_Y += $vy,
 
     $vx = $vz = 0,
-    $keys[87] && ($vx += Math.sin(PLAYER_YAW), $vz += Math.cos(PLAYER_YAW)),
-    $keys[83] && ($vx -= Math.sin(PLAYER_YAW), $vz -= Math.cos(PLAYER_YAW)),
-    $keys[68] && ($vx += Math.cos(PLAYER_YAW), $vz -= Math.sin(PLAYER_YAW)),
-    $keys[65] && ($vx -= Math.cos(PLAYER_YAW), $vz += Math.sin(PLAYER_YAW)),
-    $keys[32] && $canJump && (PLAYER_Y += ($vy = .5), $canJump = 0),
-    $vx && $vz && (
-        $vx /= Math.sqrt($vz*$vz + $vx*$vx),
-        $vz /= Math.sqrt($vz*$vz + $vx*$vx)),
+
+    WON_FRAMES < 1 && (
+        $keys[87] && ($vx += Math.sin(PLAYER_YAW), $vz += Math.cos(PLAYER_YAW)),
+        $keys[83] && ($vx -= Math.sin(PLAYER_YAW), $vz -= Math.cos(PLAYER_YAW)),
+        $keys[68] && ($vx += Math.cos(PLAYER_YAW), $vz -= Math.sin(PLAYER_YAW)),
+        $keys[65] && ($vx -= Math.cos(PLAYER_YAW), $vz += Math.sin(PLAYER_YAW)),
+        $keys[32] && $canJump && (PLAYER_Y += ($vy = .5), $canJump = 0),
+        $vx && $vz && (
+            $vx /= Math.sqrt($vz*$vz + $vx*$vx),
+            $vz /= Math.sqrt($vz*$vz + $vx*$vx)),
+
+        LAVA_LEVEL += .05
+    ),
 
     $vx1 += ($vx - $vx1)/5,
     $vz1 += ($vz - $vz1)/5,
@@ -123,7 +128,6 @@ $main = $a => (
     PLAYER_X += .4*$vx1,
     PLAYER_Z += .4*$vz1,
 
-    LAVA_LEVEL += .05,
     (PLAYER_Y < LAVA_LEVEL + 1 || DEAD_FRAMES < 0)
         && DEAD_FRAMES++
         || (s.innerText = ($score = PLAYER_Y > $score ? PLAYER_Y|0 : $score)),
@@ -134,7 +138,7 @@ $main = $a => (
         plus_fire.fade(plus_fireVol, 0, 2000),
         plus_fireVol = 0
     ),
-    DEAD_FRAMES == 0 && (
+    WON_FRAMES == 0 && DEAD_FRAMES == 0 && (
         plus_targetVol = Math.max(0,Math.min(1,  1-.05*(PLAYER_Y - LAVA_LEVEL)  )),
         plus_fireVol += (plus_targetVol - plus_fireVol) / 20,
         plus_fire.volume(plus_fireVol)
@@ -157,7 +161,16 @@ $main = $a => (
     PLAYER_Z += $readFloat(4),
     $shaderReadBuffer[6] && (
         $vy = 0,
-        $canJump = 1
+        $canJump = 1,
+        !WON_FRAMES && $score > 308 && (
+            ++WON_FRAMES,
+            $score = LAVA_LEVEL/.05,
+            $score = ($score/60|0) + '.' + ($score=$score/.6%100|0, $score>9?$score:'0'+$score) + '#s'
+//!plus
+            ,plus_music.fade(plus_MUSIC_VOL, 0, 5000),
+            plus_fire.fade(plus_fireVol, 0, 2000)
+//!end
+        )
 
 //!plus
         ,!plus_musicStarted && (
@@ -173,6 +186,8 @@ $main = $a => (
         )
 //!end
     ),
+
+    WON_FRAMES && WON_FRAMES++,
 
 //!plus
     !$shaderReadBuffer[6] && (plus_grounded = false),
