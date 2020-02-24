@@ -95,6 +95,9 @@ a.onclick = $a => (
 document.onkeydown = $a => (
     $a.keyCode > 48 && $a.keyCode < 58 && ($sensitivity = .0005*($a.keyCode-48)),
     $keys[$a.keyCode] = 1
+//!plus
+    ,$a.preventDefault()
+//!end
 ),
 
 document.onkeyup = $a => $keys[$a.keyCode] = 0,
