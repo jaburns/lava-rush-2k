@@ -7,6 +7,7 @@
     "PLAYER_Y":     "$shaderWriteBuffer[5]",
     "PLAYER_Z":     "$shaderWriteBuffer[6]",
     "WON_FRAMES":   "$shaderWriteBuffer[7]",
+    "HEAD_BOB":     "$shaderWriteBuffer[8]",
 
     "g.UNSIGNED_BYTE": "5121"
 }

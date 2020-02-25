@@ -34,7 +34,7 @@
 
         s.innerText = '';
         a.requestPointerLock();
-        a.onmousemove = a.onmousemove || ($a => DEAD_FRAMES == 0 && (
+        a.onmousemove = a.onmousemove || ($a => !DEAD_FRAMES && WON_FRAMES < 1 && (
             PLAYER_YAW += $sensitivity*$a.movementX,
             PLAYER_PITCH -= $sensitivity*$a.movementY
         ))
@@ -66,7 +66,7 @@ g.vertexAttribPointer(
 ),
 
 $init = $a => (
-    $shaderWriteBuffer = [0,0,0,-30,0,40,0,0],
+    $shaderWriteBuffer = [0,0,0,-30,0,40,0,0,0,0,0,0],
     $shaderReadBuffer = new Uint8Array(8),
     $vx =
     $vy =
@@ -125,11 +125,10 @@ $main = $a => (
         LAVA_LEVEL += .05
     ),
 
-    $vx1 += ($vx - $vx1)/5,
-    $vz1 += ($vz - $vz1)/5,
+    $shaderReadBuffer[6] && $vx && $vz && HEAD_BOB++,
 
-    PLAYER_X += .4*$vx1,
-    PLAYER_Z += .4*$vz1,
+    PLAYER_X += .4*($vx1 += ($vx - $vx1)/5),
+    PLAYER_Z += .4*($vz1 += ($vz - $vz1)/5),
 
     (PLAYER_Y < LAVA_LEVEL + 1 || DEAD_FRAMES < 0)
         && DEAD_FRAMES++

@@ -1,4 +1,4 @@
-uniform vec4 g[2];
+uniform vec4 g[3];
 
 const float i_SEED = 86.;
 
@@ -28,7 +28,10 @@ float surfFunc( vec3 p )
 }
 // -----------------------------------------------------------------------------------
 
-int mapMode; // 0: Sample for rendering, 1: Sample for xz collision check, 2: Sample for y collision check, 3: color
+const int i_MAPMODE_RENDERING    = 0;
+const int i_MAPMODE_XZ_COLLISION = 1;
+const int i_MAPMODE_Y_COLLISION  = 2;
+int mapMode;
 
 float map( vec3 p0 )
 {
@@ -52,7 +55,7 @@ float map( vec3 p0 )
                 min( 400., 
                     id.y < -1.
                         ? 0.
-                        : mapMode != 1 
+                        : mapMode != i_MAPMODE_XZ_COLLISION
                             ? 100. + 20.*hash(id+i_SEED*2.) + 5.*id.y
                             : p0.y > 20.*hash(id+i_SEED*2.) + 5.*id.y
                                 ? 0.
@@ -60,15 +63,14 @@ float map( vec3 p0 )
                 ),
                 5.+8.*hash(id+i_SEED*3.)
             );
-            if (mapMode == 0) q += i_ROUNDING;
+            if (mapMode == i_MAPMODE_RENDERING) q += i_ROUNDING;
 
             d = min(d, length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.));
         }
     }
 
-    if (mapMode == 0) {
-        d -= i_ROUNDING;
-        d -= surfFunc(p0);
+    if (mapMode == i_MAPMODE_RENDERING) {
+        d -= i_ROUNDING + surfFunc(p0);
     }
 
     return .8*d;
@@ -109,7 +111,7 @@ void main()
     vec3 ro = g[1].xyz;
     vec3 rd = vec3(0,-1,0);
 
-    mapMode = 2;
+    mapMode = i_MAPMODE_Y_COLLISION;
 
 // ---- March ----------------------------------------------
     totalDist = 0.;
@@ -124,13 +126,15 @@ void main()
     ro = g[1].xyz; 
     rd = normalize(vec3(uv, 1));
 
-    mapMode = 1;
+    mapMode = i_MAPMODE_XZ_COLLISION;
+
     vec3 pdelta = vec3(0);
     vec3 roo = ro;
     float dxz = map( ro - vec3(0,2,0) )/.8; // 2 = player height (3) - collision ring elevation (1)
     if (totalDist < 3.) pdelta.y = 3.-totalDist; // 3 = player height
     if (dxz < 2.) pdelta.xz = (2.-dxz) * getNormal( ro - vec3(0,2,0) ).xz; // 2 = player xz radius
-    mapMode = 0;
+
+    mapMode = i_MAPMODE_RENDERING;
 
     if (gl_FragCoord.x <= 2. && gl_FragCoord.y < 1.) {
         gl_FragColor = gl_FragCoord.x < 1.
@@ -141,7 +145,7 @@ void main()
 
     ro += pdelta;
 
-    ro.y += .1*(sin(ro.x)+sin(ro.z));
+    ro.y += .3*abs(sin(.2*g[2].x));
     rd.yz *= rot(g[0].y);
     rd.xz *= rot(g[0].x);
 
@@ -162,7 +166,6 @@ void main()
         color = (2.-surfFunc(roo+ph*rd))*i_LAVA;
         totalDist = ph;
     } else if (totalDist < 200.) {
-        // hsl to rgb
         vec3 albedo = .45+.51*(clamp(abs(mod(fract(  .005*(ro.x+ro.y+ro.z)  )*6.+vec3(0,4,2),6.)-3.)-1.,0.,1.)-.5);
 
         dist = surfFunc(ro);
