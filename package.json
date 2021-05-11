@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "express": "^4.17.1",
-    "lodash": "4.17.19",
+    "lodash": "4.17.21",
     "regpack": "Siorki/RegPack",
     "shelljs": "0.8.3"
   }
